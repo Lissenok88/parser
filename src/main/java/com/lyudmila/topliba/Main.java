@@ -9,7 +9,7 @@ public class Main {
         try {
             TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
             telegramBotsApi.registerBot(new ToplibaBot());
-            Console.output("TelegramBot start", true);
+            Console.output("TelegramBot start.", true);
         } catch (TelegramApiException e) {
             e.printStackTrace();
             Console.output(e.getMessage(), true);
