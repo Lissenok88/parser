@@ -7,7 +7,7 @@ import org.jsoup.select.Elements;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ToplibaParser extends BaseParser<BookInformation> {
+public class ToplibaParser {
     private static final String urlBase = "https://topliba.com/?q=";
     private boolean needStop;
     private static String key;
@@ -30,14 +30,37 @@ public class ToplibaParser extends BaseParser<BookInformation> {
         return list;
     }
 
-    public String nextPageUrl(int page) {
+    private ArrayList<BookInformation> startParse() throws InterruptedException {
+        Console.output("start start", true);
+        int page = 0;
+        ArrayList<BookInformation> parsedData = new ArrayList<>();
+        Console.output("pars start", true);
+        while (true) {
+            String pageUrl = nextPageUrl(page);
+            Console.output("next page", true);
+            page++;
+            if (pageUrl == null) {
+                break;
+            }
+            Console.output("Pars: " + pageUrl, true);
+            ArrayList<BookInformation> elements = getElements(pageUrl);
+            parsedData.addAll(elements);
+            if (elements.isEmpty()) {
+                break;
+            }
+        }
+        Console.output("parsing end", true);
+        return parsedData;
+    }
+
+    private String nextPageUrl(int page) {
         page++;
         String result = urlBase + key + "&p=" + page;
         System.out.println("Parsing page: \r\n" + result + "\r\n");
         return result;
     }
 
-    protected ArrayList<BookInformation> getElements(String pageUrl) {
+    private ArrayList<BookInformation> getElements(String pageUrl) {
         if (positionCounter > 50) {
             needStop = true;
         }
@@ -52,8 +75,8 @@ public class ToplibaParser extends BaseParser<BookInformation> {
             Element titleElement1 = q.getElementsByClass("book-title").first();
             if (titleElement1 != null) {
                 String element1 = "";
-                if (titleElement1 != null)
-                    element1 = titleElement1.getElementsByTag("a").text();
+                //if (titleElement1 != null)
+                element1 = titleElement1.getElementsByTag("a").text();
                 Element titleElement2 = q.getElementsByClass("book-author").first();
                 String element2 = "";
                 if (titleElement2 != null)
@@ -71,20 +94,10 @@ public class ToplibaParser extends BaseParser<BookInformation> {
         return (position != positionCounter) ? new ArrayList<>(element) : new ArrayList<>();
     }
 
-    protected static String convertData(ArrayList<BookInformation> elements, String message) {
-        String result = "Поиск по запросу: " + message + "\n\r";
-        for (BookInformation element : elements) {
-            result = result + element.getPosition() + ". " + element.getTitle() + "\n\r";
-            Console.output(element.getPosition() + " " + element.getTitle() + "\n\r", true);
-        }
-        Console.output(result, true);
-        return result;
-    }
-
     protected static BookInformation fillElements(String url) {
         BookInformation bookInformation = new BookInformation();
         Document doc = HttpConnector.getHtml(url, (response) -> {
-            if (response.statusCode == 200) {
+            if (response.getStatusCode() == 200) {
                 return true;
             }
             Console.input("need bun");
@@ -93,9 +106,9 @@ public class ToplibaParser extends BaseParser<BookInformation> {
         Console.output(url);
         bookInformation.setTitle(doc.getElementsByClass("book-title").first().text());
         bookInformation.setDescription(doc.getElementsByClass("description").first().text());
-        String dange = doc.getElementsByClass("alert-danger").text();
-        if (dange != "") {
-            bookInformation.setFragment(dange + " \n\r Данный файл скачать невозможно.");
+        String danger = doc.getElementsByClass("alert-danger").text();
+        if (!danger.equals("")) {
+            bookInformation.setFragment(danger + " \n\r Данный файл скачать невозможно.");
             bookInformation.setUrlFb2("");
         } else {
             String el = doc.getElementsByClass("alert-info").text();
@@ -116,10 +129,5 @@ public class ToplibaParser extends BaseParser<BookInformation> {
                 true);
         Console.output("parsing number end", true);
         return bookInformation;
-    }
-
-    @Override
-    protected Class<? extends BookInformation> getDataClass() {
-        return BookInformation.class;
     }
 }

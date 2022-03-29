@@ -6,6 +6,7 @@ import java.util.List;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -34,23 +35,7 @@ public class ToplibaBot extends TelegramLongPollingBot {
     }
 
     public void messageListOfBooks(String pageStr, Message message) {
-        int page = 0;
-        int index = pageStr.indexOf(">");
-        if (index != -1) {
-            String str = pageStr.substring(index + 1);
-            if (!str.equals(""))
-                page = Integer.parseInt(str);
-        } else {
-            index = pageStr.indexOf("<");
-            if (index != -1) {
-                String str = pageStr.substring(0, index);
-                if (!str.equals(""))
-                    page = Integer.parseInt(str);
-            } else {
-                if (!pageStr.equals(""))
-                    page = Integer.parseInt(pageStr);
-            }
-        }
+        int page = pageCalculation(pageStr);
         SendMessage sendMessage = new SendMessage();
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
         sendMessage.enableMarkdown(true);
@@ -70,6 +55,27 @@ public class ToplibaBot extends TelegramLongPollingBot {
                 Console.output(e.getMessage(), true);
             }
         }
+    }
+
+    private int pageCalculation(String pageButton) {
+        int page = 0;
+        int index = pageButton.indexOf(">");
+        if (index != -1) {
+            String str = pageButton.substring(index + 1);
+            if (!str.equals(""))
+                page = Integer.parseInt(str);
+        } else {
+            index = pageButton.indexOf("<");
+            if (index != -1) {
+                String str = pageButton.substring(0, index);
+                if (!str.equals(""))
+                    page = Integer.parseInt(str);
+            } else {
+                if (!pageButton.equals(""))
+                    page = Integer.parseInt(pageButton);
+            }
+        }
+        return page;
     }
 
     public void messageAboutBook(String message, BookInformation bookInformation) {
@@ -111,19 +117,22 @@ public class ToplibaBot extends TelegramLongPollingBot {
     }
 
     public String readPage(int page) {
-        String result = "[Topliba](https://topliba.com/)\n\n\r\r";
-        result += "*Страница " + page + " из " + length + "*\n\n\r\r";
+        StringBuilder result = new StringBuilder("[Topliba](https://topliba.com/)");
+        result.append(System.lineSeparator().repeat(2));
+        result.append("*Страница " + page + " из " + length + "*");
+        result.append(System.lineSeparator().repeat(2));
         int index = page * 5 - 5;
         for (int i = 0; i < 5; i++) {
             if (index < data.size() && data.get(index).getUrl() != null) {
-                result += "*" + data.get(index).getPosition() + ".* " + data.get(index).getTitle() + "[  >>](" +
-                        data.get(index).getUrl() + ")" + "\n\n\r\r";
+                result.append("*" + data.get(index).getPosition() + ".* " + data.get(index).getTitle());
+                result.append("[  >>](" + data.get(index).getUrl() + ")");
+                result.append(System.lineSeparator().repeat(2));
                 index++;
                 if (index == data.size())
                     break;
             }
         }
-        return result;
+        return result.toString();
     }
 
     public List<InlineKeyboardButton> readButton(int page) {
@@ -139,8 +148,8 @@ public class ToplibaBot extends TelegramLongPollingBot {
         }
         for (int i = 0; i < 5; i++) {
             if (index < data.size() && data.get(index).getUrl() != null) {
-                int iterat = index + 1;
-                InlineKeyboardButton button2 = new InlineKeyboardButton(Integer.toString(iterat));
+                int iterator = index + 1;
+                InlineKeyboardButton button2 = new InlineKeyboardButton(Integer.toString(iterator));
                 button2.setCallbackData(data.get(index).getUrl());
                 keyboardButtonsRow.add(button2);
                 Console.output("button: " + data.get(index).getPosition() + "url: " + data.get(index).getUrl(), true);
@@ -150,11 +159,11 @@ public class ToplibaBot extends TelegramLongPollingBot {
             }
         }
         if (page != length) {
-            int rrr = page + 1;
-            InlineKeyboardButton button = new InlineKeyboardButton("->" + Integer.toString(rrr));
-            button.setCallbackData("->" + Integer.toString(rrr));
+            int nextPage = page + 1;
+            InlineKeyboardButton button = new InlineKeyboardButton("->" + Integer.toString(nextPage));
+            button.setCallbackData("->" + Integer.toString(nextPage));
             keyboardButtonsRow.add(button);
-            Console.output("button: -> " + rrr, true);
+            Console.output("button: -> " + nextPage, true);
         }
         return keyboardButtonsRow;
     }
@@ -197,78 +206,74 @@ public class ToplibaBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         if (update.getMessage() != null && update.getMessage().hasText()) {
-            switch (update.getMessage().getText()) {
-                case "/start":
-                    message(update.getMessage(),
-                            "Для старта, нажмите кнопку \"Запуск бота\"");
-                    break;
-                case "Запуск бота.":
-                    message(update.getMessage(),
-                            "Привет, я бот по поиску книг на сайте.\n\n Введите название книги или автора.\n\n\r\r");
-                    break;
-                default:
-                    try {
-                        message(update.getMessage(), "Поиск...");
-                        Console.output(update.getMessage().getText(), true);
-                        data.clear();
-                        data = new ArrayList<>(ToplibaParser.parser(update.getMessage().getText()));
-                        length = 0;
-                        dataLength();
-                        if (length > 0) {
-                            messageListOfBooks("1", update.getMessage());
-                        } else {
-                            message(update.getMessage(), "Искомая книга или автор не найден.");
-                        }
-                    } catch (Exception e) {
-                        message(update.getMessage(), "Искомая книга или автор не найден.");
-                        e.printStackTrace();
-                        Console.output(e.getMessage(), true);
-                    }
-                    break;
-            }
+            parseMassage(update.getMessage());
         } else if (update.hasCallbackQuery()) {
             String str = update.getCallbackQuery().getData();
-            if (str.contains("fb2")) {
-                Console.output("Button press fb2", true);
-                try {
-                    deleteMessage(update.getCallbackQuery().getMessage());
-                    update.getCallbackQuery().getData();
-                    message(update.getCallbackQuery().getMessage(), "Файл скачен.");
-                } catch (Exception e) {
-                    Console.output("error message fb2...", true);
-                    e.printStackTrace();
-                }
-            } else if (str.contains("->")) {
-                try {
-                    Console.output("button press >", true);
-                    deleteMessage(update.getCallbackQuery().getMessage());
-                    messageListOfBooks(update.getCallbackQuery().getData(), update.getCallbackQuery().getMessage());
-                } catch (Exception e) {
-                    Console.output("error message press > ...", true);
-                    e.printStackTrace();
-                }
+            parseButton(str, update.getCallbackQuery());
+        }
+    }
 
-            } else if (str.contains("<-")) {
+    private void parseMassage(Message getMessage) {
+        switch (getMessage.getText()) {
+            case "/start":
+                message(getMessage,"Для старта, нажмите кнопку \"Запуск бота\"");
+                break;
+            case "Запуск бота.":
+                message(getMessage,
+                        "Привет, я бот по поиску книг на сайте.\n\n Введите название книги или автора.\n\n\r\r");
+                break;
+            default:
                 try {
-                    Console.output("button press <", true);
-                    deleteMessage(update.getCallbackQuery().getMessage());
-                    messageListOfBooks(update.getCallbackQuery().getData(), update.getCallbackQuery().getMessage());
-                    Console.output("button good", true);
+                    message(getMessage, "Поиск...");
+                    Console.output(getMessage.getText(), true);
+                    data.clear();
+                    data = new ArrayList<>(ToplibaParser.parser(getMessage.getText()));
+                    length = 0;
+                    dataLength();
+                    if (length > 0) {
+                        messageListOfBooks("1", getMessage);
+                    } else {
+                        message(getMessage, "Искомая книга или автор не найден.");
+                    }
                 } catch (Exception e) {
-                    Console.output("error message press < ...", true);
+                    message(getMessage, "Искомая книга или автор не найден.");
                     e.printStackTrace();
+                    Console.output(e.getMessage(), true);
                 }
-            } else {
-                try {
-                    deleteMessage(update.getCallbackQuery().getMessage());
-                    Console.output("button press number" + update.getCallbackQuery().getMessage().toString(), true);
-                    messageAboutBook(update.getCallbackQuery().getMessage().getChatId().toString(),
-                            ToplibaParser.fillElements(update.getCallbackQuery().getData()));
-                    Console.output("button good", true);
-                } catch (Exception e) {
-                    Console.output("error message...", true);
-                    e.printStackTrace();
-                }
+                break;
+        }
+    }
+
+    private void parseButton(String selectButton, CallbackQuery callbackQuery) {
+        if (selectButton.contains("fb2")) {
+            Console.output("Button press fb2", true);
+            try {
+                deleteMessage(callbackQuery.getMessage());
+                callbackQuery.getData();
+                message(callbackQuery.getMessage(), "Файл скачен.");
+            } catch (Exception e) {
+                Console.output("error message fb2...", true);
+                e.printStackTrace();
+            }
+        } else if (selectButton.contains("->") || (selectButton.contains("<-"))) {
+            try {
+                Console.output("button press >", true);
+                deleteMessage(callbackQuery.getMessage());
+                messageListOfBooks(callbackQuery.getData(), callbackQuery.getMessage());
+            } catch (Exception e) {
+                Console.output("error message press > ...", true);
+                e.printStackTrace();
+            }
+        } else {
+            try {
+                deleteMessage(callbackQuery.getMessage());
+                Console.output("button press number" + callbackQuery.getMessage().toString(), true);
+                messageAboutBook(callbackQuery.getMessage().getChatId().toString(),
+                        ToplibaParser.fillElements(callbackQuery.getData()));
+                Console.output("button good", true);
+            } catch (Exception e) {
+                Console.output("error message...", true);
+                e.printStackTrace();
             }
         }
     }
