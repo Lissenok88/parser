@@ -19,7 +19,7 @@ public class ToplibaParser {
             ToplibaParser parser = new ToplibaParser();
             key = message.replace(" ", "%20");
             Console.output(key, true);
-            list = new ArrayList<>(parser.startParse());
+            list = new ArrayList<>(parser.startParser());
             Console.output("pars end", true);
             Console.output("Parsing good", true);
             Console.output("list size - " + list.size(), true);
@@ -30,7 +30,7 @@ public class ToplibaParser {
         return list;
     }
 
-    private ArrayList<BookInformation> startParse() throws InterruptedException {
+    private ArrayList<BookInformation> startParser() throws InterruptedException {
         Console.output("start start", true);
         int page = 0;
         ArrayList<BookInformation> parsedData = new ArrayList<>();
@@ -39,9 +39,6 @@ public class ToplibaParser {
             String pageUrl = nextPageUrl(page);
             Console.output("next page", true);
             page++;
-            if (pageUrl == null) {
-                break;
-            }
             Console.output("Pars: " + pageUrl, true);
             ArrayList<BookInformation> elements = getElements(pageUrl);
             parsedData.addAll(elements);
@@ -75,7 +72,6 @@ public class ToplibaParser {
             Element titleElement1 = q.getElementsByClass("book-title").first();
             if (titleElement1 != null) {
                 String element1 = "";
-                //if (titleElement1 != null)
                 element1 = titleElement1.getElementsByTag("a").text();
                 Element titleElement2 = q.getElementsByClass("book-author").first();
                 String element2 = "";
