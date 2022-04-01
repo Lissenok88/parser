@@ -20,9 +20,6 @@ public class ToplibaParser {
             key = message.replace(" ", "%20");
             Console.output(key, true);
             list = new ArrayList<>(parser.startParser());
-            Console.output("pars end", true);
-            Console.output("Parsing good", true);
-            Console.output("list size - " + list.size(), true);
         } catch (InterruptedException ex) {
             ex.printStackTrace();
             Console.output(ex.getMessage(), true);
@@ -31,30 +28,22 @@ public class ToplibaParser {
     }
 
     private ArrayList<BookInformation> startParser() throws InterruptedException {
-        Console.output("start start", true);
         int page = 0;
         ArrayList<BookInformation> parsedData = new ArrayList<>();
-        Console.output("pars start", true);
         while (true) {
             String pageUrl = nextPageUrl(page);
-            Console.output("next page", true);
             page++;
-            Console.output("Pars: " + pageUrl, true);
             ArrayList<BookInformation> elements = getElements(pageUrl);
             parsedData.addAll(elements);
             if (elements.isEmpty()) {
                 break;
             }
         }
-        Console.output("parsing end", true);
         return parsedData;
     }
 
     private String nextPageUrl(int page) {
-        page++;
-        String result = urlBase + key + "&p=" + page;
-        System.out.println("Parsing page: \r\n" + result + "\r\n");
-        return result;
+        return urlBase + key + "&p=" + ++page;
     }
 
     private ArrayList<BookInformation> getElements(String pageUrl) {

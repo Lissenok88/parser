@@ -15,8 +15,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class Messages extends ToplibaBot{
-    private ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+public class MessageProcessing extends ToplibaBot{
+    private final ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
 
     public void message(Message message, String update) {
         SendMessage sendMessage = new SendMessage();
@@ -31,21 +31,20 @@ public class Messages extends ToplibaBot{
         }
     }
 
-    public void messageListOfBooks(String pageStr, Message message, HashMap<String, ArrayList<BookInformation>> foundBooks) {
+    public void messageListOfBooks(String pageStr, Message message, ArrayList<BookInformation> foundBooks) {
         int page = pageCalculation(pageStr);
         SendMessage sendMessage = new SendMessage();
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
         sendMessage.enableMarkdown(true);
         sendMessage.setChatId(message.getChatId().toString());
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        Console.output("page text do: " + pageStr, true);
+
         String search = searchName(pageStr);
         if (search.equals("")) search = message.getText();
-        Console.output("string Name past: " + search, true);
         String result = readPage(page, foundBooks, search);
-        sendMessage.setText(result);
+
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
-        rowList.add(readButton(page, foundBooks.get(search), search));
+        rowList.add(readButton(page, foundBooks, search));
         inlineKeyboardMarkup.setKeyboard(rowList);
         try {
             sendMessage.setText(result);
@@ -56,28 +55,23 @@ public class Messages extends ToplibaBot{
         }
     }
 
-    public void editMessageListOfBooks(String pageStr, Message message, HashMap<String, ArrayList<BookInformation>> foundBooks) {
-
+    public void editMessageListOfBooks(String pageStr, Message message,
+                                       HashMap<String, ArrayList<BookInformation>> foundBooks) {
         int page = pageCalculation(pageStr);
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setReplyMarkup(replyKeyboardMarkup);
-        sendMessage.enableMarkdown(true);
-        sendMessage.setChatId(message.getChatId().toString());
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        Console.output("page text do: " + pageStr, true);
+
         String search = searchName(pageStr);
         if (search.equals("")) search = message.getText();
-        Console.output("string Name past: " + search, true);
-        String result = readPage(page, foundBooks, search);
-        sendMessage.setText(result);
+        String result = readPage(page, foundBooks.get(search), search);
+
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
         rowList.add(readButton(page, foundBooks.get(search), search));
         inlineKeyboardMarkup.setKeyboard(rowList);
         EditMessageText editMessageText = new EditMessageText();
-
         try {
             editMessageText.setChatId(message.getChatId().toString());
             editMessageText.setMessageId(message.getMessageId());
+            editMessageText.enableMarkdown(true);
             editMessageText.setText(result);
             editMessageText.setReplyMarkup(inlineKeyboardMarkup);
             execute(editMessageText);
@@ -130,29 +124,31 @@ public class Messages extends ToplibaBot{
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<InlineKeyboardButton> keyboardButtonsRow = new ArrayList<>();
 
-        String result = "*" + bookInformation.getTitle() + "*\n\n\r\r" + bookInformation.getDescription() + "\n\n\r\r"
-                + "_" + bookInformation.getFragment() + "_";
+        StringBuilder result = new StringBuilder("*" + bookInformation.getTitle() + "*");
+        result.append(System.lineSeparator().repeat(2));
+        result.append(bookInformation.getDescription());
+        result.append(System.lineSeparator().repeat(2));
+        result.append("_" + bookInformation.getFragment() + "_");
+
         if (!bookInformation.getUrlFb2().equals("")) {
             InlineKeyboardButton button = new InlineKeyboardButton();
             button.setText("fb2");
             button.setCallbackData(bookInformation.getUrlFb2());
             keyboardButtonsRow.add(button);
-            sendMessage.setText(result);
             List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
             rowList.add(keyboardButtonsRow);
             inlineKeyboardMarkup.setKeyboard(rowList);
             try {
-                sendMessage.setText(result);
+                sendMessage.setText(result.toString());
                 sendMessage.setReplyMarkup(inlineKeyboardMarkup);
                 execute(sendMessage);
             } catch (Exception e) {
                 Console.output(e.getMessage(), true);
             }
         } else {
-            sendMessage.setText(result);
             try {
                 setButton(sendMessage);
-                sendMessage.setText(result);
+                sendMessage.setText(result.toString());
                 execute(sendMessage);
             } catch (Exception e) {
                 Console.output(e.getMessage(), true);
@@ -160,9 +156,7 @@ public class Messages extends ToplibaBot{
         }
     }
 
-    private String readPage(int page, HashMap<String, ArrayList<BookInformation>> search, String message) {
-        ArrayList<BookInformation> foundBooks = new ArrayList<>();
-        foundBooks.addAll(search.get(message));
+    private String readPage(int page, ArrayList<BookInformation> foundBooks, String message) {
         StringBuilder result = new StringBuilder("[Topliba](https://topliba.com/)");
         result.append(System.lineSeparator().repeat(2));
         result.append("Поиск: " + message);
@@ -217,12 +211,10 @@ public class Messages extends ToplibaBot{
         return keyboardButtonsRow;
     }
 
-    public int pageCountCalculation(int length) {
-        int countPages = length / 5;
-        Console.output(Integer.toString(countPages), true);
+    public int pageCountCalculation(int countBooks) {
+        int countPages = countBooks / 5;
         if (countPages % 5 != 0)
             countPages = countPages + 1;
-        Console.output(Integer.toString(countPages), true);
         return countPages;
     }
 
@@ -248,7 +240,7 @@ public class Messages extends ToplibaBot{
 
         List<KeyboardRow> keyboardRowList = new ArrayList<>();
         KeyboardRow keyboardFirstRow = new KeyboardRow();
-        keyboardFirstRow.add(new KeyboardButton("Запуск бота."));
+        keyboardFirstRow.add(new KeyboardButton("Найти книгу."));
         keyboardRowList.add(keyboardFirstRow);
         replyKeyboardMarkup.setKeyboard(keyboardRowList);
     }

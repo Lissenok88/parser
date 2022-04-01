@@ -9,13 +9,24 @@ import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 public class ToplibaBot extends TelegramLongPollingBot {
-    private HashMap<String, ArrayList<BookInformation>> listRequest = new HashMap<>();
+    private static final String START = "/start";
+    private static final String BUTTON_NAME = "Найти книгу.";
+    private static final String TEXT_START1 = "Это телеграмбот для поиска и скачивания книг с " +
+            "сайта [Topliba](https://topliba.com/)";
+    private static final String TEXT_START2 = "Чтобы найти книгу нажмите книпку \"Найти книгу\"";
+    private static final String TEXT_BUTTON = "Напишите без ошибок название книги или имя автора.";
+    private static final String TEXT_SEARCH = "Ищем книги по запросу: ";
+    private static final String TEXT_ERROR_SEARCH = "Искомая книга или автор не найден.";
+    private static final String BOT_USERNAME = "ToplibaBot";
+    private static final String BOT_TOKEN = "2114228543:AAF0Zcly2maELCGzcVkuw4ttcjk3MGIL_nU";
+    private final HashMap<String, ArrayList<BookInformation>> listRequest = new HashMap<>();
+
 
     @Override
     public void onUpdateReceived(Update update) {
-
         if (update.getMessage() != null && update.getMessage().hasText()) {
             parseMassage(update.getMessage(), listRequest);
         } else if (update.hasCallbackQuery()) {
@@ -25,73 +36,55 @@ public class ToplibaBot extends TelegramLongPollingBot {
     }
 
     private void parseMassage(Message getMessage, HashMap<String, ArrayList<BookInformation>> listRequest) {
-        Messages messages = new Messages();
+        MessageProcessing messageProcessing = new MessageProcessing();
         switch (getMessage.getText()) {
-            case "/start":
-                messages.message(getMessage, "Для старта, нажмите кнопку \"Запуск бота\"");
-                break;
-            case "Запуск бота.":
-                messages.message(getMessage,
-                        "Привет, я бот по поиску книг на сайте.\n\n Введите название книги или автора.\n\n\r\r");
-                break;
-            default:
-                try {
-                    messages.message(getMessage, "Поиск...");
-                    Console.output(getMessage.getText(), true);
-                    ArrayList<BookInformation> foundBooks = new ArrayList<>(ToplibaParser.parser(getMessage.getText()));
-                    listRequest.put(getMessage.getText(), foundBooks);
-                    if (!foundBooks.isEmpty()) {
-                        messages.messageListOfBooks("1", getMessage, listRequest);
-                    } else {
-                        messages.message(getMessage, "Искомая книга или автор не найден.");
-                    }
-                } catch (Exception e) {
-                    messages.message(getMessage, "Искомая книга или автор не найден.");
-                    e.printStackTrace();
-                    Console.output(e.getMessage(), true);
+            case START -> messageProcessing.message(getMessage, TEXT_START1 +
+                    System.lineSeparator().repeat(2) + TEXT_START2);
+            case BUTTON_NAME -> messageProcessing.message(getMessage, TEXT_BUTTON);
+            default -> {
+                messageProcessing.message(getMessage, TEXT_SEARCH + getMessage.getText());
+                ArrayList<BookInformation> foundBooks = new ArrayList<>(ToplibaParser.parser(getMessage.getText()));
+                listRequest.put(getMessage.getText(), foundBooks);
+                if (!foundBooks.isEmpty()) {
+                    messageProcessing.messageListOfBooks("1", getMessage, foundBooks);
+                } else {
+                    messageProcessing.message(getMessage, TEXT_ERROR_SEARCH);
                 }
-                break;
+            }
         }
     }
 
-    private void parseButton(String selectButton, CallbackQuery callbackQuery, HashMap<String, ArrayList<BookInformation>> searchBook) {
-        Messages messages = new Messages();
+    private void parseButton(String selectButton, CallbackQuery callbackQuery, HashMap<String,
+            ArrayList<BookInformation>> searchBook) {
+        MessageProcessing messageProcessing = new MessageProcessing();
         if (selectButton.contains("fb2")) {
             try {
-                messages.deleteMessage(callbackQuery.getMessage());
-                SendDocument sendDocument = new SendDocument(callbackQuery.getMessage().getChatId().toString(), new InputFile(callbackQuery.getData()));
+                messageProcessing.deleteMessage(callbackQuery.getMessage());
+                Console.output(callbackQuery.getData());
+                SendDocument sendDocument = new SendDocument(callbackQuery.getMessage().getChatId().toString(),
+                        new InputFile(callbackQuery.getData()));
+                sendDocument.setCaption("File download");
                 execute(sendDocument);
-                messages.message(callbackQuery.getMessage(), "Файл скачен.");
-            } catch (Exception e) {
-                Console.output("error message fb2...", true);
+            } catch (TelegramApiException e) {
+                messageProcessing.message(callbackQuery.getMessage(), "error download");
                 e.printStackTrace();
             }
         } else if (selectButton.contains("->") || (selectButton.contains("<-"))) {
-            try {
-                messages.editMessageListOfBooks(callbackQuery.getData(), callbackQuery.getMessage(), searchBook);
-            } catch (Exception e) {
-                Console.output("error message press > ...", true);
-                e.printStackTrace();
-            }
+            messageProcessing.editMessageListOfBooks(callbackQuery.getData(), callbackQuery.getMessage(), searchBook);
         } else {
-            try {
-                messages.deleteMessage(callbackQuery.getMessage());
-                messages.messageAboutBook(callbackQuery.getMessage().getChatId().toString(),
-                        ToplibaParser.fillElements(callbackQuery.getData()));
-            } catch (Exception e) {
-                Console.output("error message...", true);
-                e.printStackTrace();
-            }
+            Console.output("button number:" + callbackQuery.getData());
+            messageProcessing.messageAboutBook(callbackQuery.getMessage().getChatId().toString(),
+                    ToplibaParser.fillElements(callbackQuery.getData()));
         }
     }
 
     @Override
     public String getBotUsername() {
-        return "ToplibaBot";
+        return BOT_USERNAME;
     }
 
     @Override
     public String getBotToken() {
-        return "2114228543:AAF0Zcly2maELCGzcVkuw4ttcjk3MGIL_nU";
+        return BOT_TOKEN;
     }
 }
