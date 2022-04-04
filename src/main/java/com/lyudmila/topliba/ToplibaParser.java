@@ -3,6 +3,8 @@ package com.lyudmila.topliba;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,22 +14,21 @@ public class ToplibaParser {
     private boolean needStop;
     private static String key;
     private int positionCounter = 1;
+    private static final Logger LOGGER = LoggerFactory.getLogger(ToplibaParser.class);
 
     public static List<BookInformation> parser(String message) {
         ArrayList<BookInformation> list = new ArrayList<>();
         try {
             ToplibaParser parser = new ToplibaParser();
             key = message.replace(" ", "%20");
-            Console.output(key, true);
             list = new ArrayList<>(parser.startParser());
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-            Console.output(ex.getMessage(), true);
+        } catch (Exception ex) {
+            LOGGER.error(ex.getMessage());
         }
         return list;
     }
 
-    private ArrayList<BookInformation> startParser() throws InterruptedException {
+    private ArrayList<BookInformation> startParser() {
         int page = 0;
         ArrayList<BookInformation> parsedData = new ArrayList<>();
         while (true) {
@@ -70,8 +71,6 @@ public class ToplibaParser {
                 bookInformation.setTitle(element1 + " - " + element2);
                 String url = titleElement1.attr("href");
                 bookInformation.setUrl(url);
-                Console.output(bookInformation.getPosition() + ". " + bookInformation.getTitle() + ": " +
-                        bookInformation.getUrl(), true);
             }
             return bookInformation;
         }).toList();
@@ -85,10 +84,8 @@ public class ToplibaParser {
             if (response.getStatusCode() == 200) {
                 return true;
             }
-            Console.input("need bun");
             return false;
         });
-        Console.output(url);
         bookInformation.setTitle(doc.getElementsByClass("book-title").first().text());
         bookInformation.setDescription(doc.getElementsByClass("description").first().text());
         String danger = doc.getElementsByClass("alert-danger").text();
@@ -109,10 +106,6 @@ public class ToplibaParser {
                 urlFb2 = "";
             bookInformation.setUrlFb2(urlFb2);
         }
-        Console.output(bookInformation.getTitle() + "\n\r" + bookInformation.getDescription() + "\n\r" +
-                        bookInformation.getFragment() + "\n\r" + bookInformation.getUrlFb2() + "\n\r",
-                true);
-        Console.output("parsing number end", true);
         return bookInformation;
     }
 }

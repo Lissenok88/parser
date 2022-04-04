@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
 
 public class HttpConnector {
     private static final String userAgent = "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0";
-    private static final String contentType = "application/x-www-form-urlencoded";
     private static HttpClientContext context = HttpClientContext.create();
 
     public static Document getHtml(String url){
@@ -63,12 +62,9 @@ public class HttpConnector {
             responseModel.setBody(new BufferedReader(new InputStreamReader(responseStream)).lines()
                     .parallel().collect(Collectors.joining("\n")));
         } catch (ClientProtocolException e) {
-            Console.output(e.getMessage(), true);
-            e.printStackTrace();
             responseModel.setSuccess(false);
             responseModel.setEx(new RuntimeException(e));
         } catch (IOException e) {
-            Console.output(e.getMessage(), true);
             responseModel.setSuccess(false);
             responseModel.setEx(new RuntimeException(e));
         }

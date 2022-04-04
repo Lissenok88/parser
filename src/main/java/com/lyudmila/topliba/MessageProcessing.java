@@ -1,8 +1,12 @@
 package com.lyudmila.topliba;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -19,27 +23,30 @@ public class MessageProcessing extends ToplibaBot {
     private final ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
     private static final String SEARCH_BUTTON_NAME = "Найти книгу.";
     private static final String DOWNLOAD_BUTTON_NAME = "fb2";
+    private static final String DOWNLOAD_FILE_MESSAGE = "Открыть файл";
+    private static final String DOWNLOAD_FILE_ERROR = "Что-то пошло не так. Невозможно скачать файл.";
     private static final int COUNT_OF_BOOKS_ON_PAGE = 5;
     private static final int FIRST_PAGE = 1;
+    private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessing.class);
 
     public void message(Message message, String update) {
         try {
             SendMessage sendMessage = new SendMessage();
             sendMessage.enableMarkdown(true);
             sendMessage.setChatId(message.getChatId().toString());
-            setButton(sendMessage);
+            setButtonSearch(sendMessage);
             sendMessage.setText(update);
             execute(sendMessage);
         } catch (TelegramApiException e) {
-            Console.output(e.getMessage(), true);
+            LOGGER.error(e.getMessage());
         }
     }
 
-    public void messageListOfBooks(Message message, ArrayList<BookInformation> foundBooks) {
+    public void messageListBooks(Message message, List<BookInformation> foundBooks) {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        String messageText = formPageTextListOfBooks(FIRST_PAGE, foundBooks, message.getText());
+        String messageText = formPageTextListBooks(FIRST_PAGE, foundBooks, message.getText());
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
-        rowList.add(formPageButtonsListOfBooks(FIRST_PAGE, foundBooks, message.getText()));
+        rowList.add(formPageButtonsListBooks(FIRST_PAGE, foundBooks, message.getText()));
         inlineKeyboardMarkup.setKeyboard(rowList);
         try {
             SendMessage sendMessage = new SendMessage();
@@ -50,18 +57,18 @@ public class MessageProcessing extends ToplibaBot {
             sendMessage.setReplyMarkup(inlineKeyboardMarkup);
             execute(sendMessage);
         } catch (Exception e) {
-            Console.output(e.getMessage(), true);
+            LOGGER.error(e.getMessage());
         }
     }
 
-    public void editMessageListOfBooks(String textButton, Message message,
-                                       HashMap<String, ArrayList<BookInformation>> listRequest) {
+    public void editMessageListBooks(String textButton, Message message,
+                                     HashMap<String, ArrayList<BookInformation>> listRequest) {
         int page = getPage(textButton);
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         String nameSearch = getNameSearch(textButton);
-        String textMessage = formPageTextListOfBooks(page, listRequest.get(nameSearch), nameSearch);
+        String textMessage = formPageTextListBooks(page, listRequest.get(nameSearch), nameSearch);
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
-        rowList.add(formPageButtonsListOfBooks(page, listRequest.get(nameSearch), nameSearch));
+        rowList.add(formPageButtonsListBooks(page, listRequest.get(nameSearch), nameSearch));
         inlineKeyboardMarkup.setKeyboard(rowList);
         try {
             EditMessageText editMessageText = new EditMessageText();
@@ -72,12 +79,12 @@ public class MessageProcessing extends ToplibaBot {
             editMessageText.setReplyMarkup(inlineKeyboardMarkup);
             execute(editMessageText);
         } catch (Exception e) {
-            Console.output(e.getMessage(), true);
+            LOGGER.error(e.getMessage());
         }
     }
 
 
-    private String formPageTextListOfBooks(int page, ArrayList<BookInformation> foundBooks, String nameSearch) {
+    private String formPageTextListBooks(int page, List<BookInformation> foundBooks, String nameSearch) {
         StringBuilder pageText = new StringBuilder();
         pageText.append("*Поиск: " + nameSearch + "*");
         pageText.append(System.lineSeparator().repeat(2));
@@ -96,8 +103,8 @@ public class MessageProcessing extends ToplibaBot {
         return pageText.toString();
     }
 
-    private List<InlineKeyboardButton> formPageButtonsListOfBooks(int page, ArrayList<BookInformation> foundBooks,
-                                                                  String nameSearch) {
+    private List<InlineKeyboardButton> formPageButtonsListBooks(int page, List<BookInformation> foundBooks,
+                                                                String nameSearch) {
         int position = page * COUNT_OF_BOOKS_ON_PAGE - COUNT_OF_BOOKS_ON_PAGE;
         List<InlineKeyboardButton> keyboardButtons = new ArrayList<>();
         if (page != FIRST_PAGE) {
@@ -118,7 +125,7 @@ public class MessageProcessing extends ToplibaBot {
         keyboardButtons.add(buttonBack);
     }
 
-    private void addButtonsBookNumbers(int position, ArrayList<BookInformation> foundBooks,
+    private void addButtonsBookNumbers(int position, List<BookInformation> foundBooks,
                                        List<InlineKeyboardButton> keyboardButtons) {
         for (int i = 0; i < COUNT_OF_BOOKS_ON_PAGE; i++) {
             if (position < foundBooks.size() && foundBooks.get(position).getUrl() != null) {
@@ -146,24 +153,24 @@ public class MessageProcessing extends ToplibaBot {
         sendMessage.enableMarkdown(true);
         sendMessage.setChatId(message);
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        String textMassage = formMessageTextAboutOfBook(bookInformation);
+        String textMassage = formMessageTextAboutBook(bookInformation);
         try {
             if (!bookInformation.getUrlFb2().isEmpty()) {
-                inlineKeyboardMarkup.setKeyboard(formMessageButtonAboutOfBook(bookInformation));
+                inlineKeyboardMarkup.setKeyboard(formMessageButtonAboutBook(bookInformation));
                 sendMessage.setText(textMassage);
                 sendMessage.setReplyMarkup(inlineKeyboardMarkup);
                 execute(sendMessage);
             } else {
-                setButton(sendMessage);
+                setButtonSearch(sendMessage);
                 sendMessage.setText(textMassage);
                 execute(sendMessage);
             }
         } catch (TelegramApiException e) {
-            Console.output(e.getMessage(), true);
+            LOGGER.error(e.getMessage());
         }
     }
 
-    private String formMessageTextAboutOfBook(BookInformation bookInformation) {
+    private String formMessageTextAboutBook(BookInformation bookInformation) {
         StringBuilder textMessage = new StringBuilder("*" + bookInformation.getTitle() + "*");
         textMessage.append(System.lineSeparator().repeat(2));
         textMessage.append(bookInformation.getDescription());
@@ -172,7 +179,7 @@ public class MessageProcessing extends ToplibaBot {
         return textMessage.toString();
     }
 
-    private List<List<InlineKeyboardButton>> formMessageButtonAboutOfBook(BookInformation bookInformation) {
+    private List<List<InlineKeyboardButton>> formMessageButtonAboutBook(BookInformation bookInformation) {
         List<InlineKeyboardButton> keyboardButtonsRow = new ArrayList<>();
         InlineKeyboardButton buttonDownload = new InlineKeyboardButton();
         buttonDownload.setText(DOWNLOAD_BUTTON_NAME);
@@ -181,6 +188,18 @@ public class MessageProcessing extends ToplibaBot {
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
         rowList.add(keyboardButtonsRow);
         return rowList;
+    }
+
+    public void messageDownloadFile(Message message, String urlFile) {
+        try {
+            deleteMessage(message);
+            SendDocument sendDocument = new SendDocument(message.getChatId().toString(), new InputFile(urlFile));
+            sendDocument.setCaption(DOWNLOAD_FILE_MESSAGE);
+            execute(sendDocument);
+        } catch (TelegramApiException e) {
+            message(message, DOWNLOAD_FILE_ERROR);
+            LOGGER.error(e.getMessage());
+        }
     }
 
     private int getCountPage(int countBooks) {
@@ -220,7 +239,7 @@ public class MessageProcessing extends ToplibaBot {
         return page;
     }
 
-    public void deleteMessage(Message message) {
+    private void deleteMessage(Message message) {
         DeleteMessage deleteMessage = new DeleteMessage();
         deleteMessage.setChatId(String.valueOf(message.getChatId()));
         deleteMessage.setMessageId(message.getMessageId());
@@ -229,11 +248,12 @@ public class MessageProcessing extends ToplibaBot {
         try {
             execute(deleteMessage);
         } catch (TelegramApiException ex) {
-            Console.output(ex.getMessage(), true);
+            //Console.output(ex.getMessage(), true);
+            LOGGER.error(ex.getMessage());
         }
     }
 
-    private void setButton(SendMessage sendMessage) {
+    private void setButtonSearch(SendMessage sendMessage) {
         sendMessage.setReplyMarkup(replyKeyboardMarkup);
         replyKeyboardMarkup.setSelective(true);
         replyKeyboardMarkup.setResizeKeyboard(true);
