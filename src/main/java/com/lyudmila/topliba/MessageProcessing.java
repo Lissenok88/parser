@@ -248,7 +248,6 @@ public class MessageProcessing extends ToplibaBot {
         try {
             execute(deleteMessage);
         } catch (TelegramApiException ex) {
-            //Console.output(ex.getMessage(), true);
             LOGGER.error(ex.getMessage());
         }
     }

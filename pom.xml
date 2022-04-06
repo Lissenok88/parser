@@ -34,11 +34,6 @@
             <version>${jsoup.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.poi</groupId>
-            <artifactId>poi-ooxml</artifactId>
-            <version>${apache.poi.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>${google.code.gson.version}</version>
@@ -47,11 +42,6 @@
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>${apache.httpcomponents.httpclient.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-csv</artifactId>
-            <version>${apache.commons.version}</version>
         </dependency>
         <dependency>
             <groupId>org.telegram</groupId>
@@ -88,10 +78,6 @@
             <scope>runtime</scope>
         </dependency>
 
-
-
-
-
     </dependencies>
 
     <build>
@@ -118,5 +104,4 @@
             </plugins>
         </pluginManagement>
     </build>
-
 </project>
